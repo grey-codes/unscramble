@@ -1,11 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
+from PIL import Image
 
-ROWS = 4
-COLUMNS = 8
-EDGE_THICKNESS = 1
 
-img = plt.imread("Messed32.jpg")
+parser = argparse.ArgumentParser(description='Unscramble an image')
+parser.add_argument('--input', '-i', default="Messed32.jpg", help='path to input file')
+parser.add_argument('--instructions', '-n', help='path to instruction file')
+parser.add_argument('--output', '-o', default="Messed32.jpg", help='path to output file')
+parser.add_argument('--rows', '-r', default=4,type=int, help='rows')
+parser.add_argument('--columns', '-c', default=8,type=int, help='columns')
+parser.add_argument('--edges', '-e', default=1,type=int, help='edge thickness')
+args = parser.parse_args()
+
+ROWS = args.rows
+COLUMNS = args.columns
+EDGE_THICKNESS = args.edges
+
+NAME_IN = args.input
+NAME_OUT = args.output
+
+
+img = plt.imread(NAME_IN)
 imgH, imgW, imgL = np.shape(img)
 segW = round(imgW / COLUMNS)
 segH = round(imgH / ROWS)
@@ -195,8 +211,15 @@ print("Enter row, col, and ID separated by a space.")
 print("Enter 'f' without quotes in the same line to mark it as flipped.")
 print("Enter a blank line to stop reading.")
 knownPairs = []
-while(True):   
-    s = input()
+
+if not (args.instructions is None):
+    instFile = open(args.instructions, "r")
+while(True):
+    if (args.instructions is None):
+        s = input()
+    else:
+        s=instFile.readline()
+        print(s)
     m = map(str, s.split())
     arr = []
     doFlip=False
@@ -307,6 +330,9 @@ for i in range(ROWS):
         y2 = y + segH
         imgFinal[y:y2,x:x2,:]=chunk["chunk"]
         plt.text( (x+x2)/2, (y+y2)/2, str(chunkId))
+
+im = Image.fromarray(imgFinal)
+im.save(NAME_OUT)
 
 plt.imshow(imgFinal)
 plt.show()
