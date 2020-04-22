@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-ROWS = 2
-COLUMNS = 4
+ROWS = 4
+COLUMNS = 8
 EDGE_THICKNESS = 1
 
-img = plt.imread("Messed.jpg")
+img = plt.imread("Messed32.jpg")
 imgH, imgW, imgL = np.shape(img)
 segW = round(imgW / COLUMNS)
 segH = round(imgH / ROWS)
@@ -78,8 +78,8 @@ def findMatch(index,chunkList,orientationList="LRBT",threshold=500):
             if "R" in orientationAr:
                 mRightLeft=mse(rightEdge,innerChunk["L"])
                 mRightRight=mse(np.rot90(rightEdge,2),innerChunk["R"]) #rot180
-                if (innerChunk["id"]==5 and chunkTb["id"]==2):
-                    print(mRightLeft)
+                #if (innerChunk["id"]==5 and chunkTb["id"]==2):
+                #    print(mRightLeft)
                 if (mRightLeft<lastMSE):
                     tmpMatch=[innerChunk["id"],"R","L"] #our right to its left
                     lastMSE=mRightLeft
@@ -124,6 +124,8 @@ print("Which chunk ID is top left?")
 #this is going to be third, or 2 in the default Scrambled image
 #5 belongs to its right
 
+#top left is 16 on messed32
+
 topLeftChunkId = int(input())
 topLeftChunk = chunkAr[topLeftChunkId]
 
@@ -149,9 +151,10 @@ for colVar in range(COLUMNS):
         else:
             match=None
             if (rowVar==0): #starting a new column
-                match=findMatch(leftChunk,chunkSearch,"R",5000)
+                match=findMatch(leftChunk,chunkSearch,"R",50000)
             else:
-                match=findMatch(topChunk,chunkSearch,"B",5000)
+                match=findMatch(topChunk,chunkSearch,"B",50000)
+            print(match)
             chunkId = match[0]
             matchChunk = None
             for i in range(len(chunkSearch)):
@@ -160,6 +163,9 @@ for colVar in range(COLUMNS):
                     matchChunk=chunk
                     chunkSearch.pop(i)
                     break
+            if (match[1]==match[2]):
+                matchChunk["chunk"] = np.rot90(matchChunk["chunk"],2)
+                calculateEdges(matchChunk)
             if (rowVar==0): #starting a new column
                 leftChunk = matchChunk
             else:
@@ -167,7 +173,23 @@ for colVar in range(COLUMNS):
         chunkMap[rowVar][colVar] = chunkId
 
 print(chunkMap)
+imgFinal = img.copy()
 
+for i in range(ROWS):
+    for j in range(COLUMNS):
+        chunkId = chunkMap[i][j]
+        chunk = None
+        for chunkTmp in chunkAr:
+            if chunkTmp["id"]==chunkId:
+                chunk=chunkTmp
+        x=j*segW
+        y=i*segH
+        x2 = x + segW
+        y2 = y + segH
+        imgFinal[y:y2,x:x2,:]=chunk["chunk"]
+
+plt.imshow(imgFinal)
+plt.show()
 
 """
 chunkStack = chunkAr.copy()
