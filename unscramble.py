@@ -174,35 +174,59 @@ def findChunkById(idv, chunkList):
         if chunk["id"]==idv:
             return chunk
 
-print("Which chunk ID is top left?")
+  
 #this is going to be third, or 2 in the default Scrambled image
 #5 belongs to its right
 
 #top left is 16 on messed32
 
-topLeftChunkId = int(input())
-topLeftChunk = chunkAr[topLeftChunkId]
+#topLeftChunkId = int(input())
+#topLeftChunk = chunkAr[topLeftChunkId]
 
 chunkSearch = chunkAr.copy()
-chunkSearch.pop(topLeftChunkId)
+
+#chunkSearch.pop(topLeftChunkId)
 
 chunkMap = [None] * ROWS
 for i in range(ROWS):
     chunkMap[i]=[None] * COLUMNS
 
-chunkMap[0][0]=topLeftChunkId
+print("Enter row, col, and ID separated by a space. Enter 'q' without quotes to stop.")
+knownPairs = []
+while(True):   
+    s = input()
+    if s.find("q")!=-1:
+        break
+    m = map(int, s.split())
+    arr = []
+    for x in m:
+        arr.append(x)
+    if len(arr)==3:
+        knownPairs.append(arr.copy())
+
+for pair in knownPairs:
+    chunkMap[pair[0]][pair[1]]=pair[2]
+
+for colVar in range(COLUMNS):
+    for rowVar in range(ROWS):
+        val = chunkMap[rowVar][colVar]
+        if not (val is None):
+            #remove it from list of searchable chunks
+            for i in range(len(chunkSearch)):
+                chunk = chunkSearch[i]
+                if (chunk["id"]==val):
+                    chunkSearch.pop(i)
+                    break
 
 #start with each column
-topChunk = topLeftChunk
-leftChunk = topLeftChunk
 rowVar = 0
 colVar = 0
 
 for colVar in range(COLUMNS):
     for rowVar in range(ROWS):
         chunkId = None
-        if rowVar==0 and colVar==0:
-            chunkId = topLeftChunkId
+        if not (chunkMap[rowVar][colVar] is None):
+            chunkId = chunkMap[rowVar][colVar]
         else:
             topChunk = None
             leftChunk = None
@@ -262,15 +286,13 @@ imgFinal = img.copy()
 for i in range(ROWS):
     for j in range(COLUMNS):
         chunkId = chunkMap[i][j]
-        chunk = None
-        for chunkTmp in chunkAr:
-            if chunkTmp["id"]==chunkId:
-                chunk=chunkTmp
+        chunk = findChunkById(chunkId,chunkAr)
         x=j*segW
         y=i*segH
         x2 = x + segW
         y2 = y + segH
         imgFinal[y:y2,x:x2,:]=chunk["chunk"]
+        plt.text( (x+x2)/2, (y+y2)/2, str(chunkId))
 
 plt.imshow(imgFinal)
 plt.show()
