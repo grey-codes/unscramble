@@ -43,13 +43,16 @@ for chunkTb in chunkAr:
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 def mse(imageA, imageB):
-    imageA = rgb2gray(imageA)
-    imageB = rgb2gray(imageB)
+    imageA = rgb2gray(imageA).astype("float") 
+    imageB = rgb2gray(imageB).astype("float")
     # the 'Mean Squared Error' between the two images is the
     # sum of the squared difference between the two images;
     # NOTE: the two images must have the same dimension
-    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-    err /= float(imageA.shape[0] * imageA.shape[1])
+
+    #err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    #err /= float(imageA.shape[0] * imageA.shape[1])
+
+    err = np.square(np.subtract(imageA, imageB)).mean()
     
     # return the MSE, the lower the error, the more "similar"
     # the two images are
@@ -120,6 +123,54 @@ def findMatch(index,chunkList,orientationList="LRBT",threshold=500):
     if lastMSE<=threshold:
         return tmpMatch
 
+def findMatchTL(chunkList,topChunk=None,leftChunk=None,threshold=500):
+    bottomEdge = None
+    rightEdge = None
+    testBottomEdge = False
+    testRightEdge = False
+    doSquare = False
+    tmpMatch=[]
+    if not (topChunk is None):
+        bottomEdge = topChunk["B"]
+        testBottomEdge = True
+    if not (leftChunk is None):
+        rightEdge = leftChunk["R"]
+        testRightEdge = True
+    if (testRightEdge and testBottomEdge):
+        doSquare = True
+    squareFac = 1
+    if doSquare:
+        squareFac = 2
+    lastMSE = 10000000000
+    for innerChunk in chunkList:
+        if (testRightEdge and innerChunk["id"]==leftChunk["id"]):
+            continue
+        if (testBottomEdge and innerChunk["id"]==topChunk["id"]):
+            continue
+        #first, test normal orientation
+        combinedMSE = 0
+        combinedMSE_Flip = 0
+        if testRightEdge:
+            combinedMSE = combinedMSE + pow(mse(rightEdge,innerChunk["L"]), squareFac)
+            combinedMSE_Flip = combinedMSE_Flip + pow(mse(np.rot90(rightEdge,2),innerChunk["R"]), squareFac)
+        if testBottomEdge:
+            combinedMSE = combinedMSE + pow(mse(bottomEdge,innerChunk["T"]), squareFac)
+            combinedMSE_Flip = combinedMSE_Flip + pow(mse(np.rot90(bottomEdge,2),innerChunk["B"]), squareFac)
+        if (testBottomEdge and testRightEdge):
+            combinedMSE = pow(combinedMSE,1/squareFac)
+            combinedMSE_Flip = pow(combinedMSE_Flip,1/squareFac)
+        if (combinedMSE<lastMSE):
+            tmpMatch = [innerChunk["id"],"R","L"]
+            lastMSE = combinedMSE
+        if (combinedMSE_Flip<lastMSE):
+            tmpMatch = [innerChunk["id"],"R","R"]
+            lastMSE = combinedMSE_Flip
+    tmpMatch.append(lastMSE)
+    if lastMSE<=threshold:
+        return tmpMatch
+        
+
+
 print("Which chunk ID is top left?")
 #this is going to be third, or 2 in the default Scrambled image
 #5 belongs to its right
@@ -168,8 +219,7 @@ for colVar in range(COLUMNS):
                 calculateEdges(matchChunk)
             if (rowVar==0): #starting a new column
                 leftChunk = matchChunk
-            else:
-                topChunk = matchChunk
+            topChunk = matchChunk
         chunkMap[rowVar][colVar] = chunkId
 
 print(chunkMap)
