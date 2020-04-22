@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 ROWS = 2
 COLUMNS = 4
+EDGE_THICKNESS = 1
 
 img = plt.imread("Messed.jpg")
 imgH, imgW, imgL = np.shape(img)
@@ -23,10 +24,10 @@ for i in range(ROWS):
 
 def calculateEdges( chunkTb ):
     chunk = chunkTb["chunk"]
-    chunkTb["L"]=chunk[0:segH,0:1,0:imgL]
-    chunkTb["R"]=chunk[0:segH,segW-1:segW,0:imgL]
-    chunkTb["T"]=chunk[0:1,0:segW,0:imgL]
-    chunkTb["B"]=chunk[segH-1:segH,0:segW,0:imgL]
+    chunkTb["L"]=chunk[0:segH,0:EDGE_THICKNESS,0:imgL]
+    chunkTb["R"]=chunk[0:segH,segW-EDGE_THICKNESS:segW,0:imgL]
+    chunkTb["T"]=chunk[0:EDGE_THICKNESS,0:segW,0:imgL]
+    chunkTb["B"]=chunk[segH-EDGE_THICKNESS:segH,0:segW,0:imgL]
 
     #rotate orientation to match top
     chunkTb["R"]=np.rot90(chunkTb["R"], 3)
@@ -53,8 +54,14 @@ def mse(imageA, imageB):
     # return the MSE, the lower the error, the more "similar"
     # the two images are
     return err
+
 def findMatch(index,chunkList,orientationList="LRBT",threshold=500):
-    chunkTb = chunkList[index]
+    chunkTb = None
+    if (type(index)==int):
+        chunkTb = chunkList[index]
+    else:
+        chunkTb = index
+        index = -1
     topEdge = chunkTb["T"]
     leftEdge = chunkTb["L"]
     bottomEdge = chunkTb["B"]
@@ -63,7 +70,6 @@ def findMatch(index,chunkList,orientationList="LRBT",threshold=500):
     if isinstance(orientationAr, str):
         orientationAr = list(orientationAr)
     lastMSE=1000000000000
-    doFlip=True
     tmpMatch=[]
     for j in range(len(chunkList)):
         if (index!=j):
@@ -72,46 +78,98 @@ def findMatch(index,chunkList,orientationList="LRBT",threshold=500):
             if "R" in orientationAr:
                 mRightLeft=mse(rightEdge,innerChunk["L"])
                 mRightRight=mse(np.rot90(rightEdge,2),innerChunk["R"]) #rot180
+                if (innerChunk["id"]==5 and chunkTb["id"]==2):
+                    print(mRightLeft)
                 if (mRightLeft<lastMSE):
-                    tmpMatch=[j,"R","L"] #our right to its left
+                    tmpMatch=[innerChunk["id"],"R","L"] #our right to its left
                     lastMSE=mRightLeft
                 if (mRightRight<lastMSE):
-                    tmpMatch=[j,"R","R"] #our right to its left
+                    tmpMatch=[innerChunk["id"],"R","R"] #our right to its left
                     lastMSE=mRightRight
             #does it belong on our left
             if "L" in orientationAr:
                 mLeftRight=mse(leftEdge,innerChunk["R"])
                 mLeftLeft=mse(np.rot90(leftEdge,2),innerChunk["L"]) #rot180
                 if (mLeftRight<lastMSE):
-                    tmpMatch=[j,"L","R"] #our left to its right
+                    tmpMatch=[innerChunk["id"],"L","R"] #our left to its right
                     lastMSE=mLeftRight
                 if (mLeftLeft<lastMSE):
-                    tmpMatch=[j,"L","L"] #our left to its right
+                    tmpMatch=[innerChunk["id"],"L","L"] #our left to its right
                     lastMSE=mLeftLeft
             #does it belong on our top
             if "T" in orientationAr:
                 mTopBottom=mse(topEdge,innerChunk["B"])
                 mTopTop=mse(np.rot90(topEdge,2),innerChunk["T"]) #rot180
                 if (mTopBottom<lastMSE):
-                    tmpMatch=[j,"T","B"] #our top to its bottom
+                    tmpMatch=[innerChunk["id"],"T","B"] #our top to its bottom
                     lastMSE=mTopBottom
                 if (mTopTop<lastMSE):
-                    tmpMatch=[j,"T","T"] #our top to its top
+                    tmpMatch=[innerChunk["id"],"T","T"] #our top to its top
                     lastMSE=mTopTop
             #does it belong on our bottom
             if "B" in orientationAr:
                 mBottomTop=mse(bottomEdge,innerChunk["T"])
                 mBottomBottom=mse(np.rot90(bottomEdge,2),innerChunk["B"]) #rot180
                 if (mBottomTop<lastMSE):
-                    tmpMatch=[j,"B","T"] #our bottom to its top
+                    tmpMatch=[innerChunk["id"],"B","T"] #our bottom to its top
                     lastMSE=mBottomTop
                 if (mBottomBottom<lastMSE):
-                    tmpMatch=[j,"B","B"] #our bottom to its bottom
+                    tmpMatch=[innerChunk["id"],"B","B"] #our bottom to its bottom
                     lastMSE=mBottomBottom
     tmpMatch.append(lastMSE)
     if lastMSE<=threshold:
         return tmpMatch
 
+print("Which chunk ID is top left?")
+#this is going to be third, or 2 in the default Scrambled image
+#5 belongs to its right
+
+topLeftChunkId = int(input())
+topLeftChunk = chunkAr[topLeftChunkId]
+
+chunkSearch = chunkAr.copy()
+chunkSearch.pop(topLeftChunkId)
+
+chunkMap = [None] * ROWS
+for i in range(ROWS):
+    chunkMap[i]=[None] * COLUMNS
+
+chunkMap[0][0]=topLeftChunkId
+
+#start with each column
+topChunk = topLeftChunk
+leftChunk = topLeftChunk
+rowVar = 0
+colVar = 0
+for colVar in range(COLUMNS):
+    for rowVar in range(ROWS):
+        chunkId = None
+        if rowVar==0 and colVar==0:
+            chunkId = topLeftChunkId
+        else:
+            match=None
+            if (rowVar==0): #starting a new column
+                match=findMatch(leftChunk,chunkSearch,"R",5000)
+            else:
+                match=findMatch(topChunk,chunkSearch,"B",5000)
+            chunkId = match[0]
+            matchChunk = None
+            for i in range(len(chunkSearch)):
+                chunk = chunkSearch[i]
+                if (chunk["id"]==match[0]):
+                    matchChunk=chunk
+                    chunkSearch.pop(i)
+                    break
+            if (rowVar==0): #starting a new column
+                leftChunk = matchChunk
+            else:
+                topChunk = matchChunk
+        chunkMap[rowVar][colVar] = chunkId
+
+print(chunkMap)
+
+
+"""
 chunkStack = chunkAr.copy()
 chunkStackGood=[]
 while len(chunkStack)>0:
@@ -144,5 +202,6 @@ while len(chunkStack)>0:
 for chunk in chunkStackGood:
     print(chunk["id"])
     print(chunk["matches"])
-    
+"""
+
 #for chunk in chunkAr:    
