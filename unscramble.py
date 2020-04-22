@@ -169,7 +169,10 @@ def findMatchTL(chunkList,topChunk=None,leftChunk=None,threshold=500):
     if lastMSE<=threshold:
         return tmpMatch
         
-
+def findChunkById(idv, chunkList):
+    for chunk in chunkList:
+        if chunk["id"]==idv:
+            return chunk
 
 print("Which chunk ID is top left?")
 #this is going to be third, or 2 in the default Scrambled image
@@ -194,6 +197,36 @@ topChunk = topLeftChunk
 leftChunk = topLeftChunk
 rowVar = 0
 colVar = 0
+
+for colVar in range(COLUMNS):
+    for rowVar in range(ROWS):
+        chunkId = None
+        if rowVar==0 and colVar==0:
+            chunkId = topLeftChunkId
+        else:
+            topChunk = None
+            leftChunk = None
+            if (rowVar>0):
+                topChunk=findChunkById(chunkMap[rowVar-1][colVar],chunkAr)
+            if (colVar>0):
+                leftChunk=findChunkById(chunkMap[rowVar][colVar-1],chunkAr)
+            if (rowVar==1 and colVar==0):
+                print(topChunk["id"])
+            match = findMatchTL(chunkSearch,topChunk,leftChunk,100000)
+            chunkId = match[0]
+            matchChunk = None
+            for i in range(len(chunkSearch)):
+                chunk = chunkSearch[i]
+                if (chunk["id"]==match[0]):
+                    matchChunk=chunk
+                    chunkSearch.pop(i)
+                    break
+            if (match[1]==match[2]):
+                matchChunk["chunk"] = np.rot90(matchChunk["chunk"],2)
+                calculateEdges(matchChunk)
+        chunkMap[rowVar][colVar] = chunkId
+            
+"""
 for colVar in range(COLUMNS):
     for rowVar in range(ROWS):
         chunkId = None
@@ -221,6 +254,7 @@ for colVar in range(COLUMNS):
                 leftChunk = matchChunk
             topChunk = matchChunk
         chunkMap[rowVar][colVar] = chunkId
+"""
 
 print(chunkMap)
 imgFinal = img.copy()
