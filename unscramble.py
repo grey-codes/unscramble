@@ -191,20 +191,34 @@ chunkMap = [None] * ROWS
 for i in range(ROWS):
     chunkMap[i]=[None] * COLUMNS
 
-print("Enter row, col, and ID separated by a space. Enter 'q' without quotes to stop.")
+print("Enter row, col, and ID separated by a space.")
+print("Enter 'f' without quotes in the same line to mark it as flipped.")
+print("Enter a blank line to stop reading.")
 knownPairs = []
 while(True):   
     s = input()
-    if s.find("q")!=-1:
-        break
-    m = map(int, s.split())
+    m = map(str, s.split())
     arr = []
+    doFlip=False
     for x in m:
-        arr.append(x)
-    if len(arr)==3:
+        if (x=='f'):
+            doFlip=True
+        else:
+            try:
+                arr.append(int(x))
+            except ValueError:
+                break
+    arr.append(doFlip)
+    if len(arr)==4:
         knownPairs.append(arr.copy())
+    if len(arr)==1:
+        break
 
 for pair in knownPairs:
+    if len(pair)>3 and pair[3]: #flip it
+        matchChunk = findChunkById(pair[2],chunkAr)
+        matchChunk["chunk"] = np.rot90(matchChunk["chunk"],2)
+        calculateEdges(matchChunk)
     chunkMap[pair[0]][pair[1]]=pair[2]
 
 for colVar in range(COLUMNS):
