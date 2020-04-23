@@ -7,7 +7,7 @@ from PIL import Image
 parser = argparse.ArgumentParser(description='Unscramble an image')
 parser.add_argument('--input', '-i', default="Messed32.jpg", help='path to input file')
 parser.add_argument('--instructions', '-n', help='path to instruction file')
-parser.add_argument('--output', '-o', default="Messed32.jpg", help='path to output file')
+parser.add_argument('--output', '-o', default="out.jpg", help='path to output file')
 parser.add_argument('--rows', '-r', default=4,type=int, help='rows')
 parser.add_argument('--columns', '-c', default=8,type=int, help='columns')
 parser.add_argument('--edges', '-e', default=1,type=int, help='edge thickness')
